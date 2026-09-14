@@ -269,6 +269,19 @@
     margin:0 auto;
   }
   section > .eyebrow{ margin-bottom:14px; }
+  .type-cursor{
+    display:inline-block;
+    width:2px;
+    height:0.95em;
+    background:var(--accent);
+    margin-left:2px;
+    vertical-align:-0.1em;
+    animation:type-blink 0.9s steps(1) infinite;
+  }
+  @keyframes type-blink{ 50%{ opacity:0; } }
+  @media (prefers-reduced-motion: reduce){
+    .type-cursor{ display:none; }
+  }
   .sec-title{
     font-family:var(--font-display);
     font-weight:600;
@@ -625,15 +638,15 @@
 
   <section id="about">
     <p class="eyebrow">01 — ABOUT</p>
-    <h2 class="sec-title reveal">기획부터 개발까지, 디테일을 완성합니다</h2>
+    <h2 class="sec-title reveal" data-type>기획부터 개발까지, 디테일을 완성합니다</h2>
     <div class="about-grid reveal">
       <div class="avatar-box">
         <canvas id="avatar-canvas"></canvas>
         <div class="initials">CY</div>
       </div>
       <div class="about-text">
-        <p><strong>기획부터 개발까지 직접 완성하며</strong> 작은 디테일까지 완성도를 추구합니다.</p>
-        <p>새로운 기술을 배우는 것을 두려워하지 않는 엔지니어입니다. 데이터에서 패턴을 찾아내는 분석적 논리와, 그것을 시스템으로 구현하는 개발 역량을 함께 갖추고 있습니다.</p>
+        <p data-type><strong>기획부터 개발까지 직접 완성하며</strong> 작은 디테일까지 완성도를 추구합니다.</p>
+        <p data-type>새로운 기술을 배우는 것을 두려워하지 않는 엔지니어입니다. 데이터에서 패턴을 찾아내는 분석적 논리와, 그것을 시스템으로 구현하는 개발 역량을 함께 갖추고 있습니다.</p>
         <p class="mini-label">PROFILE</p>
         <ul class="dash-list">
           <li>통계데이터학과 졸업</li>
@@ -646,7 +659,7 @@
 
   <section id="skills">
     <p class="eyebrow">02 — SKILLS</p>
-    <h2 class="sec-title reveal">사용하는 기술</h2>
+    <h2 class="sec-title reveal" data-type>사용하는 기술</h2>
     <div class="skills-grid reveal">
       <div class="skill-card" data-tilt>
         <p class="idx">01</p>
@@ -673,7 +686,7 @@
 
   <section id="projects">
     <p class="eyebrow">03 — PROJECTS</p>
-    <h2 class="sec-title reveal">프로젝트</h2>
+    <h2 class="sec-title reveal" data-type>프로젝트</h2>
     <p class="carousel-hint reveal"><b>드래그</b>하여 회전 · 마우스를 올리면 정지 · 01 ACTIVE / 06 SLOTS</p>
     <div class="carousel-stage reveal" id="project-carousel">
       <noscript>
@@ -694,7 +707,7 @@
 
   <section id="experience">
     <p class="eyebrow">04 — EXPERIENCE</p>
-    <h2 class="sec-title reveal">경력</h2>
+    <h2 class="sec-title reveal" data-type>경력</h2>
     <div class="timeline reveal">
       <div class="tl-item">
         <div class="tl-head">
@@ -732,7 +745,7 @@
 
   <section id="education">
     <p class="eyebrow">05 — EDUCATION</p>
-    <h2 class="sec-title reveal">학력</h2>
+    <h2 class="sec-title reveal" data-type>학력</h2>
     <div class="timeline reveal">
       <div class="tl-item">
         <div class="tl-head">
@@ -769,7 +782,7 @@
   <section id="contact">
     <p class="eyebrow">06 — CONTACT</p>
     <div class="contact-panel reveal">
-      <p class="big">함께 만들 작업이 있다면 언제든 연락 주세요.</p>
+      <p class="big" data-type>함께 만들 작업이 있다면 언제든 연락 주세요.</p>
       <div class="contact-links">
         <a href="mailto:scy9809@naver.com"><span class="ico">✉</span>scy9809@naver.com</a>
         <a href="https://github.com/cchany" target="_blank" rel="noopener"><span class="ico">⌥</span>github.com/cchany</a>
@@ -1122,6 +1135,77 @@
     });
   }
 
+  /* ---------------- typewriter reveal ---------------- */
+  function initTypewriter(){
+    var targets = document.querySelectorAll('[data-type]');
+    if(!targets.length) return;
+
+    if(reduceMotion){
+      return; // leave static text as-is, no motion
+    }
+
+    var prepared = [];
+    targets.forEach(function(el){
+      var textNodes = [];
+      (function walk(node){
+        node.childNodes.forEach(function(c){
+          if(c.nodeType === 3 && c.nodeValue.length){
+            textNodes.push({ node:c, full:c.nodeValue, shown:0 });
+          } else if(c.nodeType === 1){
+            walk(c);
+          }
+        });
+      })(el);
+      textNodes.forEach(function(t){ t.node.nodeValue = ''; });
+      prepared.push({ el:el, textNodes:textNodes, done:false });
+    });
+
+    function typeItem(item){
+      if(item.done) return;
+      item.done = true;
+      var flat = [];
+      item.textNodes.forEach(function(t){
+        for(var i=0;i<t.full.length;i++){ flat.push(t); }
+      });
+      var cursor = document.createElement('span');
+      cursor.className = 'type-cursor';
+      item.el.appendChild(cursor);
+      var speed = item.el.classList.contains('sec-title') ? 26 : 15;
+      var idx = 0;
+      function tick(){
+        if(idx >= flat.length){
+          setTimeout(function(){ cursor.remove(); }, 500);
+          return;
+        }
+        var t = flat[idx];
+        t.shown++;
+        t.node.nodeValue = t.full.slice(0, t.shown);
+        idx++;
+        setTimeout(tick, speed);
+      }
+      tick();
+    }
+
+    if(!('IntersectionObserver' in window)){
+      prepared.forEach(typeItem);
+      return;
+    }
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(!entry.isIntersecting) return;
+        var item = null;
+        for(var i=0;i<prepared.length;i++){
+          if(prepared[i].el === entry.target){ item = prepared[i]; break; }
+        }
+        if(item){
+          typeItem(item);
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold:0.25 });
+    prepared.forEach(function(item){ io.observe(item.el); });
+  }
+
   /* ---------------- scroll reveal ---------------- */
   function initReveal(){
     var items = document.querySelectorAll('.reveal');
@@ -1166,6 +1250,7 @@
     initAvatar();
     initProjectCarousel();
     initTilt();
+    initTypewriter();
     initReveal();
     initSpy();
   });
